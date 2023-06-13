@@ -1,0 +1,365 @@
+1. Всички класове в онтологията - да се пусне без reasoning
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?class WHERE {
+  ?class a rdfs:Class .
+}
+
+2. Всички подкласове на Person:
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+SELECT ?subclass
+WHERE {
+    ?subclass rdfs:subClassOf dbo:Person .
+}
+
+3. Всички property-та с домейн bko:Book или dbo:Person
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+SELECT DISTINCT ?property WHERE {
+    VALUES ?domainClass {
+        bko:Book dbo:Person
+    }
+    ?property rdfs:domain ?domainClass .
+}
+
+
+Заявки върху индивиди
+4. Всички книги на J.K.Rowling:
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbp: <http://dbpedia.org/property/> 
+SELECT ?bookName WHERE {
+    ?book a bko:Book .
+    ?book bko:hasAuthor/dbp:name "J. K. Rowling" ;
+          dbp:title ?bookName .
+}
+
+5. Намери авторът на книгата "The physics of sorrow" и неговата националност
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/> 
+SELECT ?authorName ?nationality WHERE {
+    ?book a bko:Book .
+    ?book dbp:title "The physics of sorrow" ;
+          bko:hasAuthor ?author .
+    ?author dbp:name ?authorName ;
+            bko:nationality ?nationality .
+}
+
+6. Всички жанрове на книгата "Harry Potter and the Philosopher's Stone":
+PREFIX bkr: <http://example.org/book/resource#>
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?genre WHERE {
+    ?book dbp:title "Harry Potter and the Philosopher's Stone"  .
+    ?book bko:hasGenre/dbp:name ?genre .
+}
+
+7. Всички автори в онтологията и тяхната националност
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT DISTINCT ?authorName ?nationality WHERE {
+    ?author a bko:Author ;
+            dbp:name ?authorName ;
+            bko:nationality ?nationality .
+}
+
+8. Автори от кои националности има в онтологията
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT DISTINCT ?nationality WHERE {
+    ?author a bko:Author ;
+            bko:nationality ?nationality .
+}
+
+
+9. Всички книги в онтологията, които са написани от български автори
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/> 
+SELECT ?bookName ?authorName WHERE { 
+    ?book bko:hasAuthor ?author ;
+        dbp:title ?bookName .
+    ?author bko:nationality "Bulgaria" ;
+        dbp:name ?authorName . 
+} 
+
+10. Всички фентъзи книги в онтологията с техния автор и неговата националност
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/> 
+
+SELECT ?bookTitle ?authorName ?nationality WHERE { 
+  ?book bko:hasGenre/dbp:name "fantasy" ;
+        dbp:title ?bookTitle ;
+        bko:hasAuthor ?author .
+  ?author dbp:name ?authorName ;
+        bko:nationality ?nationality .
+} 
+
+Заявки, демонстриращи reasoning-a в базата от знания
+11. Всички хора, които са написали книги
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT DISTINCT ?personName WHERE {
+    ?person a dbo:Person ;
+            dbp:name ?personName .
+    ?book bko:hasAuthor ?person .
+}
+
+12. Всички книги, които имат такива, които ги следват
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX bko: <http://example.org/book/ontology#>
+SELECT ?bookTitle ?author ?followingBookTitle WHERE { 
+  ?book dbp:title ?bookTitle ;
+      bko:followedBy ?followingBook ;
+      bko:hasAuthor/dbp:name ?author .
+  ?followingBook dbp:title ?followingBookTitle .
+} 
+
+13. Книгите, които следват "Harry Potter and the Philosopher's Stone" 
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX bko: <http://example.org/book/ontology#>
+SELECT ?followingBookTitle WHERE { 
+  ?book dbp:title "Harry Potter and the Philosopher's Stone" ;
+      bko:followedBy ?followingBook .
+  ?followingBook dbp:title ?followingBookTitle .
+} 
+
+14. Книгите, предшестващи "Harry Potter and the Deathly Hallows"
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX bko: <http://example.org/book/ontology#>
+SELECT ?previousBookTitle WHERE { 
+  ?book dbp:title "Harry Potter and the Deathly Hallows" ;
+    bko:following ?previousBook .
+  ?previousBook dbp:title ?previousBookTitle .
+}  
+
+
+Заявки, които използват повече от 1 концепт и имат FILTER
+15. Заявка, която намира всички книги, които са fantasy/adventure fiction и не са написани от J. K. Rowling
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?title ?authorName ?genreLabel
+WHERE {
+    ?book bko:hasGenre ?genre ;
+          bko:hasAuthor ?author ;
+          dbp:title ?title .
+    ?genre dbp:name ?genreLabel .
+    ?author dbp:name ?authorName
+    FILTER (?genreLabel IN ("fantasy", "adventure fiction"))
+    FILTER (?author != "J. K. Rowling")
+}
+
+
+16. Заявка, която намира всички книги на автори от България или Франция, които не са исторически. 
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX bkr: <http://example.org/book/resource#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT distinct ?authorName ?bookTitle
+WHERE {
+    ?book bko:hasGenre ?genre ;
+          bko:hasAuthor ?author ;
+          dbp:title ?bookTitle .
+    ?genre dbp:name ?genreLabel .
+    ?author dbp:name ?authorName ;
+            bko:nationality ?nationality .
+    FILTER (?nationality IN ("Bulgaria", "France"))
+    FILTER (?genreLabel != "historical fiction")
+}
+
+17. Всички книги от серията "Harry Potter and the ...", които не са "young adult fiction"
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX bko: <http://example.org/book/ontology#>
+SELECT DISTINCT ?bookTitle ?followingBook (GROUP_CONCAT(?genreName;
+        separator=", ") as ?genres) WHERE {
+    ?book a bko:Book ;
+          bko:hasGenre/dbp:name ?genreName ;
+                      dbp:title ?bookTitle .
+    ?genre dbp:name ?genreName .
+    OPTIONAL {
+        ?book bko:followedBy/dbp:title ?followingBook 
+    }
+    FILTER ( REGEX(?bookTitle, "^Harry Potter and the .*" ) )
+    FILTER NOT EXISTS {
+        ?book bko:hasGenre/dbp:name "young adult fiction" .
+    }
+} GROUP BY ?bookTitle ?followingBook
+
+18. Български книги, които са издадени преди 1900-та година
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?bookTitle ?date WHERE {
+    ?book a bko:Book ;
+          bko:hasAuthor ?author ;
+          dbp:title ?bookTitle ;
+          bko:releaseDate ?date FILTER (?date < "1900-01-01T00:00:00Z"^^xsd:dateTime) .
+    ?author bko:nationality "Bulgaria" .
+}
+
+Заявки, които използват операции върху множества
+19. Заявка, която намира всички автори, които не са писали книга в жанр трагедия 
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX bkr: <http://example.org/book/resource#>
+SELECT ?authorName
+WHERE {
+    ?author a bko:Author ;
+            dbp:name ?authorName .
+    MINUS {
+        ?book bko:hasAuthor/dbp:name ?authorName ;
+              bko:hasGenre/dbp:name "tragedy" .
+    }
+} 
+
+20. Заявка, която дава всички книги, които са в жанр драма или са написани от Агата Кристи:
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX bkr: <http://example.org/book/resource#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT DISTINCT ?bookTitle ?authorName WHERE {
+    {
+        ?book bko:hasGenre/dbp:name "drama";
+                          dbp:title ?bookTitle;
+                          bko:hasAuthor/dbp:name ?authorName .
+    }
+    UNION
+    {
+        ?book bko:hasAuthor/dbp:name "Agatha Christie";
+                           dbp:title ?bookTitle ;
+                           bko:hasAuthor/dbp:name ?authorName .
+    }
+}
+
+
+Заявки, които използват функции, задаващи стойност
+21. Заявка, която задава за всички книги на български или френски автори етикет, за това дали книгата е с повече или по-малко от 300 страници
+
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?bookName ?authorName ?country ?numberOfPages ?isLongBook
+WHERE {
+    VALUES ?country {
+        "Bulgaria" "France"
+    }
+    ?book a bko:Book ;
+          bko:numberOfPages ?numberOfPages ;
+          dbp:title ?bookName ;
+          bko:hasAuthor ?author .
+    ?author dbp:name ?authorName ;
+            bko:nationality ?country .
+    BIND(IF(?numberOfPages > 300, "Yes", "No") AS ?isLongBook)
+}
+
+
+22. Заявка, която връща всички книги на J. K. Rowling и John Grisham, които са с жанр crime fiction или detective fiction и са издадени преди по-малко от 10 години.
+
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?bookTitle ?authorName ?genreName ?releaseDate ?ageOfBook WHERE {
+    VALUES ?genreName {
+        "crime fiction" "detective fiction" 
+    }
+    VALUES ?authorName {
+        "J. K. Rowling" "John Grisham" 
+    }
+    ?book a bko:Book ;
+          bko:releaseDate ?releaseDate ;
+          dbp:title ?bookTitle ;
+          bko:hasAuthor/dbp:name ?authorName ;
+                       bko:hasGenre/dbp:name ?genreName
+    BIND(YEAR(NOW()) - YEAR(?releaseDate) AS ?ageOfBook)
+    FILTER(?ageOfBook < 10)
+} ORDER BY ?ageOfBook
+
+
+Заявки с агрегиращи функции:
+23. За всяка държава от онтологията по колко автори и по колко книги има
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?nationality ?numOfAuthors (COUNT(?book) as ?numOfBooks) where {
+    ?author a bko:Author ;
+            bko:nationality ?nationality .
+    ?book bko:hasAuthor ?author .
+    {
+        SELECT ?nationality (COUNT (?author) as ?numOfAuthors) where {
+            ?author a bko:Author ;
+                    bko:nationality ?nationality .
+        } GROUP BY ?nationality    
+    }
+} GROUP BY ?nationality ?numOfAuthors
+
+24. Издателство с най-много издадени книги
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?publishingStudioName (COUNT(?book ) as ?countBook) WHERE { 
+  ?book a bko:Book ;
+       bko:publishedBy/dbp:name ?publishingStudioName .
+}
+GROUP BY ?publishingStudioName
+ORDER BY DESC(?countBook)
+LIMIT 1
+
+25. За всеки жанр в онтологията по колко книги има
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?genreName (COUNT(?book) as ?countBook) WHERE { 
+  ?book a bko:Book ;
+       bko:hasGenre/dbp:name ?genreName .
+}
+GROUP BY ?genreName
+ORDER BY DESC(?countBook)
+
+26. За всеки автор по колко книги е написал и средно по колко страници
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?authorName (COUNT(?book) as ?numOfBooks) (AVG(?numOfPages) as ?avgNumOfPages) WHERE {
+    ?author a bko:Author ;
+            dbp:name ?authorName .
+    ?book bko:hasAuthor ?author .
+    OPTIONAL {
+        ?book bko:numberOfPages ?numOfPages .
+    }
+} GROUP BY ?authorName
+ORDER BY DESC(?numOfBooks)
+
+27. Aвторът с най-дългата поредица в онтологията
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT ?authorName (MAX(?numOfBooksInSeries) as ?maxLengthOfSeries) WHERE {
+    ?author dbp:name ?authorName .
+    {
+        SELECT ?author ?book (COUNT (?anotherBook) as ?numOfBooksInSeries) WHERE {
+            ?book a bko:Book ;
+                  bko:hasAuthor ?author ;
+                  bko:followedBy ?anotherBook .
+        } GROUP BY ?author ?book
+    }
+}
+GROUP BY ?authorName
+ORDER BY DESC(?maxLengthOfSeries)
+LIMIT 1
+
+28. Заявка, която дава книгите на Жул Верн, Георги Господинов и J. K. Rowling с техните жанрове и първа дата на публикуване
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX bko: <http://example.org/book/ontology#>
+PREFIX dbp: <http://dbpedia.org/property/>
+SELECT DISTINCT ?bookTitle ?authorName ?firstPublication (GROUP_CONCAT(?genreName; separator = ", ") as ?genres) WHERE {
+    ?book dbp:title ?bookTitle ;
+          bko:releaseDate ?firstPublication .
+    OPTIONAL {
+        ?book bko:hasGenre ?genre .
+        ?genre dbp:name ?genreName .
+    }
+    {
+        SELECT ?book ?authorName (MIN(?publicationDate) as ?firstPublication) WHERE {
+            VALUES ?authorName {
+                "Georgi Gospodinov" "Jules Verne" "J. K. Rowling" 
+            }
+            ?book bko:hasAuthor/dbp:name ?authorName .
+            OPTIONAL {
+                ?book bko:releaseDate ?publicationDate .
+            }
+        } GROUP BY ?book ?authorName
+    }
+} GROUP BY ?book ?bookTitle ?authorName ?firstPublication
